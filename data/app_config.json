@@ -1,17 +1,17 @@
 {
-  "company_name": "TechFix Solutions",
-  "ceo_email": "support@techfix.com",
-  "agent_name": "TechFix Solutions Assistant",
+  "company_name": "Grand Events",
+  "ceo_email": "planner@grandevents.com",
+  "agent_name": "Grand Events Assistant",
   "products": [
     {
-      "name": "Basic Support",
-      "price": "$29/mo",
-      "details": "Remote desktop support 9-5."
+      "name": "Wedding",
+      "price": "$5000+",
+      "details": "Full service wedding planning."
     },
     {
-      "name": "Enterprise",
-      "price": "$99/mo",
-      "details": "24/7 Priority support."
+      "name": "Corporate Party",
+      "price": "$2000+",
+      "details": "Office parties and galas."
     }
   ]
 }

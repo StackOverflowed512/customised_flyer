@@ -8,4 +8,5 @@ jinja2
 reportlab
 python-multipart
 # for email
-secure-smtplib
+# secure-smtplib
+beautifulsoup4

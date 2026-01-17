@@ -3,10 +3,11 @@ import smtplib
 import os
 from email.message import EmailMessage
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
+from reportlab.lib.units import inch
+from bs4 import BeautifulSoup, NavigableString
 from app.core import config
-# import secure_smtplib # REMOVED to avoid confusion, using standard smtplib
-
 
 # Load ENV variables for email
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
@@ -47,23 +48,109 @@ def send_email(to_email: str, subject: str, content: str, attachment_path: str =
         msg.add_attachment(file_data, maintype='application', subtype='pdf', filename=file_name)
 
     try:
+        print(f"--- Attempting to send email via {EMAIL_HOST}:{EMAIL_PORT} ---")
+        print(f"From: {EMAIL_USER}")
+        print(f"To: {to_email}")
+        
         # Determine strict SSL (465) vs STARTTLS (587/other)
         if EMAIL_PORT == 465:
             # Implicit SSL
             with smtplib.SMTP_SSL(EMAIL_HOST, EMAIL_PORT) as server:
+                server.set_debuglevel(1)
                 server.login(EMAIL_USER, EMAIL_PASSWORD)
                 server.send_message(msg)
         else:
             # STARTTLS (Default for 587)
             with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
+                server.set_debuglevel(1)
+                server.ehlo()
                 server.starttls()
+                server.ehlo()
                 server.login(EMAIL_USER, EMAIL_PASSWORD)
                 server.send_message(msg)
                 
+        print("--- Email SMTP transaction complete ---")
         return f"Email sent successfully to {to_email}."
     except Exception as e:
         print(f"Failed to send email: {e}")
         return f"Failed to send email: {e}"
+
+def parse_html_to_flowables(html_content, styles):
+    """
+    Parses a string of HTML content into a list of ReportLab Flowables.
+    Handles basic tags: h1-h6, p, ul, li, strong, b, em, i.
+    """
+    soup = BeautifulSoup(html_content, "html.parser")
+    flowables = []
+    
+    def process_element(element):
+        if isinstance(element, NavigableString):
+            text = str(element).strip()
+            if text:
+                flowables.append(Paragraph(text, styles["BodyText"]))
+            return
+
+        if element.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+            # Map HTML headers to ReportLab styles
+            style_name = 'Heading1' if element.name == 'h1' else \
+                         'Heading2' if element.name == 'h2' else \
+                         'Heading3' if element.name == 'h3' else \
+                         'Heading4'
+            # Get inner text/html for the paragraph
+            # We use decode_contents to keep inner inline tags like <b> or <i> which Paragraph supports
+            text = element.decode_contents() 
+            flowables.append(Paragraph(text, styles[style_name]))
+            flowables.append(Spacer(1, 6))
+            
+        elif element.name == 'p':
+            text = element.decode_contents()
+            flowables.append(Paragraph(text, styles["BodyText"]))
+            flowables.append(Spacer(1, 8))
+            
+        elif element.name in ['ul', 'ol']:
+            list_items = []
+            for child in element.children:
+                if child.name == 'li':
+                    # Parse contents of li
+                    # For simplicity, treat li content as a Paragraph
+                    li_content = child.decode_contents()
+                    list_items.append(
+                        ListItem(
+                            Paragraph(li_content, styles["BodyText"]),
+                            leftIndent=20,
+                            value='-' if element.name == 'ul' else '1'
+                        )
+                    )
+            if list_items:
+                flowables.append(ListFlowable(list_items, bulletType='bullet', start='circle'))
+                flowables.append(Spacer(1, 8))
+        
+        elif element.name == 'div':
+            # Recurse
+            for child in element.children:
+                process_args = process_element(child)
+        
+        else:
+            # Generic fallback: try to extract text if it's a block, or ignore if it's structural junk
+            # If it's a top level plain text or unknown tag, wrap in normal paragraph
+             if element.name:
+                 # It might be an inline tag at top level (unlikely if well formed, but possible)
+                 # We wrap it
+                 text = str(element)
+                 flowables.append(Paragraph(text, styles["BodyText"]))
+                 flowables.append(Spacer(1, 6))
+
+    # If the content has no tags (just plain text), split by newlines
+    if not soup.find():
+        for line in html_content.split('\n'):
+            if line.strip():
+                flowables.append(Paragraph(line, styles["BodyText"]))
+    else:
+        # Iterate over top-level elements
+        for child in soup.children:
+            process_element(child)
+            
+    return flowables
 
 def generate_flyer_pdf(title: str, content: str, filename: str = "flyer.pdf"):
     # Ensure static/flyers exists
@@ -77,48 +164,40 @@ def generate_flyer_pdf(title: str, content: str, filename: str = "flyer.pdf"):
         
     filepath = os.path.join(output_dir, filename)
     
-    c = canvas.Canvas(filepath, pagesize=letter)
-    width, height = letter
+    # Setup DocTemplate
+    doc = SimpleDocTemplate(filepath, pagesize=letter)
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    styles.add(ParagraphStyle(name='FlyerTitle', parent=styles['Heading1'], fontSize=24, spaceAfter=20, alignment=1)) # Center
+    styles.add(ParagraphStyle(name='FlyerFooter', parent=styles['Italic'], fontSize=10, textColor='grey', spaceBefore=20))
+    
+    story = []
+    
+    # Add Company Branding
+    conf = config.load_config()
+    company = conf.get("company_name", "Company Name")
     
     # Title
-    c.setFont("Helvetica-Bold", 24)
-    c.drawCentredString(width / 2, height - 80, title)
+    story.append(Paragraph(title, styles['FlyerTitle']))
+    story.append(Paragraph(f"Brought to you by {company}", styles['Normal']))
+    story.append(Spacer(1, 20))
     
-    # Company Branding (from config)
-    conf = config.load_config()
-    company = conf.get("company_name", "Wanderlust")
-    c.setFont("Helvetica-Oblique", 14)
-    c.drawCentredString(width / 2, height - 110, f"Brought to you by {company}")
+    # Content body - parse HTML or plain text
+    # Note: Mistral might incorrectly escape characters like \n or produce Markdown mixed with HTML.
+    # We trust BeautifulSoup to handle the HTML parts.
     
-    c.line(50, height - 120, width - 50, height - 120)
-    
-    # Content
-    c.setFont("Helvetica", 12)
-    text = c.beginText(50, height - 150)
-    text.setFont("Helvetica", 12)
-    
-    # Basic logical wrapping
-    max_chars = 90
-    lines = content.split('\n')
-    for line in lines:
-        while len(line) > max_chars:
-            chunk = line[:max_chars]
-            last_space = chunk.rfind(' ')
-            if last_space > 0:
-                text.textLine(line[:last_space])
-                line = line[last_space+1:]
-            else:
-                text.textLine(chunk)
-                line = line[max_chars:]
-        text.textLine(line)
-        
-    c.drawText(text)
+    # Pre-cleaning: simple replace of newlines if it's NOT HTML
+    if not ("<" in content and ">" in content):
+         content = content.replace("\n", "<br/>")
+
+    story.extend(parse_html_to_flowables(content, styles))
     
     # Footer
-    c.setFont("Helvetica-Oblique", 10)
-    c.drawString(50, 50, f"Contact us via our Chat Agent. © {company}")
+    story.append(Spacer(1, 40))
+    story.append(Paragraph(f"Contact us via our Chat Agent. © {company}", styles['FlyerFooter']))
     
-    c.save()
+    doc.build(story)
     
     return f"/static/flyers/{filename}"
 
@@ -128,12 +207,9 @@ def create_and_email_flyer(to_email: str, title: str, content: str, filename: st
     """
     try:
         # 1. Generate PDF
-        # We need the local file path, not the web URL.
-        # generate_flyer_pdf returns "/static/flyers/filename", we need relative system path "static/flyers/filename"
-        # but let's just reuse the logic or call the function and strip leading /
         web_path = generate_flyer_pdf(title, content, filename)
-        file_path = web_path.lstrip('/') # "static/flyers/..."
-        if file_path.startswith('/'): file_path = file_path[1:] # Double check
+        file_path = web_path.lstrip('/') 
+        if file_path.startswith('/'): file_path = file_path[1:]
 
         # 2. Email it
         subject = f"Your Requested Flyer: {title}"
@@ -147,5 +223,4 @@ def create_and_email_flyer(to_email: str, title: str, content: str, filename: st
         return f"Failed to process flyer request: {e}"
 
 def update_lead_info(name: str = None, email: str = None, mobile: str = None, topic: str = None):
-    # This just returns success message for agent
     return f"User info updated: {name}, {email}, {mobile}"
