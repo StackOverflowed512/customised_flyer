@@ -1,17 +1,17 @@
 {
-  "company_name": "Future Academics",
-  "ceo_email": "dean@future.edu",
-  "agent_name": "Future Academics Assistant",
+  "company_name": "TechFix Solutions",
+  "ceo_email": "support@techfix.com",
+  "agent_name": "TechFix Solutions Assistant",
   "products": [
     {
-      "name": "Python 101",
-      "price": "$200",
-      "details": "Intro to programming."
+      "name": "Basic Support",
+      "price": "$29/mo",
+      "details": "Remote desktop support 9-5."
     },
     {
-      "name": "Data Science",
-      "price": "$500",
-      "details": "Machine Learning and AI."
+      "name": "Enterprise",
+      "price": "$99/mo",
+      "details": "24/7 Priority support."
     }
   ]
 }
