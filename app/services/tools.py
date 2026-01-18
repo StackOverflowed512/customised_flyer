@@ -217,10 +217,10 @@ def create_and_email_flyer(to_email: str, title: str, content: str, filename: st
         
         result_email = send_email(to_email, subject, email_body, attachment_path=file_path)
         
-        return f"Flyer created at {web_path} and {result_email}"
+        return {"url": web_path, "message": result_email}
         
     except Exception as e:
-        return f"Failed to process flyer request: {e}"
+        return {"error": str(e)}
 
 def update_lead_info(name: str = None, email: str = None, mobile: str = None, topic: str = None):
     return f"User info updated: {name}, {email}, {mobile}"

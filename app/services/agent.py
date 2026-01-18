@@ -44,16 +44,17 @@ def generate_dynamic_prompt(conf):
     INTERACTION GUIDELINES:
     1. Be polite, professional, and helpful.
     2. Collect User Information (Name, Email, Mobile) early in the conversation naturally.
-    3. If the user seems interested in a specific item, offer to send them a detailed Flyer (PDF) or Email about it.
-    4. If the user reports an issue, apologize and try to solve it. If you can't, offer to "Escalate to the CEO" (which sends an email to the CEO).
+    3. If the user seems interested in a specific item, immediately generate and provide the Flyer (PDF) using generate_flyer_pdf. DO NOT ask for their email first.
+    4. Only use email_flyer if the user EXPLICITLY requests to have the flyer sent to their email.
+    5. If the user reports an issue, apologize and try to solve it. If you can't, offer to "Escalate to the CEO" (which sends an email to the CEO).
     
     TOOLS:
     To use a tool, output valid JSON:
     {{ "tool": "tool_name", "params": {{ ... }} }}
     
     - update_lead_info(name, email, mobile, topic)
-    - generate_flyer_pdf(title, content, filename)
-    - email_flyer(to_email, title, content, filename) -- Generates PDF and emails it. Use this if user asks to "email me the flyer".
+    - generate_flyer_pdf(title, content, filename) -- Use this BY DEFAULT when a flyer is needed. It automatically downloads for the user.
+    - email_flyer(to_email, title, content, filename) -- Only use if user specifically asks to EMAIL the flyer.
     - send_email(to_email, subject, content) -- Use "CEO" as to_email for escalations.
     - send_sms(mobile_number, message)
     
@@ -111,12 +112,15 @@ def process_user_message(user_message: str, history: list):
                     tool_response = f"(System: {result})"
                 elif tool_name == "generate_flyer_pdf":
                     filepath = tools.generate_flyer_pdf(**params)
-                    tool_response = f"I've created that flyer for you: [{params.get('filename')}]({filepath})"
-                    bot_content = tool_response
+                    tool_response = json.dumps({"action": "download", "url": filepath})
+                    bot_content = f"I've generated the flyer '{params.get('title', 'requested')}' for you. [Download PDF]({filepath})"
                 elif tool_name == "email_flyer":
                     result = tools.create_and_email_flyer(**params)
-                    tool_response = result
-                    bot_content = tool_response
+                    if isinstance(result, dict) and "url" in result:
+                        tool_response = json.dumps({"action": "download", "url": result["url"]})
+                        bot_content = f"{result.get('message', 'Flyer emailed.')} [Download PDF]({result['url']})"
+                    else:
+                        bot_content = str(result.get("error", result)) if isinstance(result, dict) else str(result)
                 elif tool_name == "send_email":
                     result = tools.send_email(**params)
                     tool_response = f"{result}"

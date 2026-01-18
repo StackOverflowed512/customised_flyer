@@ -95,7 +95,20 @@ async function sendMessage() {
         const data = await response.json();
         sessionId = data.session_id;
         
-        // Show tool result if any distinct from text (optional, backend usually embeds it)
+        // Check for automatic actions (e.g. download)
+        if (data.tool_executed) {
+            try {
+                const actionData = JSON.parse(data.tool_executed);
+                if (actionData.action === 'download' && actionData.url) {
+                    const link = document.createElement('a');
+                    link.href = actionData.url;
+                    link.download = actionData.url.split('/').pop();
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            } catch(e) {/* Not a JSON action, ignore */}
+        }
         
         let reply = data.response;
         reply = parseMarkdown(reply);
