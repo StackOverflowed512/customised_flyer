@@ -2,7 +2,10 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, F
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from datetime import datetime
 
-DATABASE_URL = "sqlite:///./data/chat_agent.db"
+import os
+
+# Use env variable for DB URL or fallback to local sqlite
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/chat_agent.db")
 
 Base = declarative_base()
 
@@ -38,7 +41,12 @@ class Message(Base):
     
     session = relationship("ChatSession", back_populates="messages")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Handle arguments based on DB Type
+connect_args = {}
+if "sqlite" in DATABASE_URL:
+    connect_args = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
