@@ -153,8 +153,9 @@ def parse_html_to_flowables(html_content, styles):
     return flowables
 
 def generate_flyer_pdf(title: str, content: str, filename: str = "flyer.pdf"):
-    # Ensure static/flyers exists
-    output_dir = os.path.join("static", "flyers")
+    # Ensure static/flyers exists using absolute path
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    output_dir = os.path.join(BASE_DIR, "static", "flyers")
     os.makedirs(output_dir, exist_ok=True)
     
     # Sanitize filename

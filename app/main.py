@@ -24,12 +24,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from pathlib import Path
+
+# Setup paths
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "static"
+
 # Mount Static Files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/")
 async def read_root():
-    return FileResponse('static/index.html')
+    return FileResponse(STATIC_DIR / "index.html")
 
 # DB Dependency
 def get_db():
