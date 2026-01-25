@@ -16,7 +16,7 @@
 }
 
 body {
-    font-family: 'Outfit', sans-serif;
+    font-family: "Outfit", sans-serif;
     background-color: var(--bg-dark);
     color: var(--text-primary);
     height: 100vh;
@@ -64,7 +64,8 @@ body {
     transition: all 0.3s ease;
 }
 
-.menu button:hover, .menu button.active {
+.menu button:hover,
+.menu button.active {
     background-color: var(--accent);
     color: white;
     box-shadow: 0 0 15px var(--accent-glow);
@@ -89,9 +90,19 @@ section {
     flex-direction: column;
 }
 
+.hidden-section {
+    display: none !important;
+}
+
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Chat Styles */
@@ -158,6 +169,73 @@ section {
     box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
 }
 
+/* User Info Prompt */
+.user-info-prompt {
+    background-color: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 15px;
+    border: 1px solid #334155;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    align-self: center;
+    width: 100%;
+    max-width: 400px;
+}
+
+.user-info-prompt h3 {
+    margin-bottom: 10px;
+    color: var(--accent);
+    font-size: 1.3rem;
+}
+
+.user-info-prompt p {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.user-info-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.user-info-form input {
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+}
+
+.user-info-form input::placeholder {
+    color: #64748b;
+}
+
+.user-info-form input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.user-info-form button {
+    padding: 12px 20px;
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+    font-size: 1rem;
+}
+
+.user-info-form button:hover {
+    transform: scale(1.02);
+}
+
 .chat-input-area {
     margin-top: 20px;
     display: flex;
@@ -205,7 +283,8 @@ section {
     color: var(--text-secondary);
 }
 
-.form-group input, .form-group textarea {
+.form-group input,
+.form-group textarea {
     width: 100%;
     padding: 12px;
     background-color: var(--bg-secondary);
@@ -246,7 +325,8 @@ table {
     margin-top: 10px;
 }
 
-th, td {
+th,
+td {
     text-align: left;
     padding: 12px;
     border-bottom: 1px solid #334155;

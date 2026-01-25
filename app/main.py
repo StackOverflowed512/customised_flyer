@@ -53,6 +53,8 @@ def startup_event():
 class ChatRequest(BaseModel):
     session_id: Optional[int] = None
     message: str
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
 
 class ConfigUpdate(BaseModel):
     company_name: Optional[str] = None
@@ -109,11 +111,21 @@ def apply_preset(selection: PresetSelect):
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
+    from datetime import datetime
+    
     if not request.session_id:
-        user = User(name="Anonymous")
+        # Create new user and session with provided info
+        user = User(
+            name=request.user_name or "Anonymous",
+            email=request.user_email or None
+        )
         db.add(user)
         db.commit()
-        chat_session = ChatSession(user_id=user.id)
+        
+        chat_session = ChatSession(
+            user_id=user.id,
+            start_time=datetime.utcnow()
+        )
         db.add(chat_session)
         db.commit()
         session_id = chat_session.id
@@ -122,6 +134,16 @@ def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         chat_session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
         if not chat_session:
             raise HTTPException(status_code=404, detail="Session not found")
+            
+        # If name/email provided, update user info
+        if request.user_name or request.user_email:
+            user = db.query(User).filter(User.id == chat_session.user_id).first()
+            if user:
+                if request.user_name:
+                    user.name = request.user_name
+                if request.user_email:
+                    user.email = request.user_email
+                db.commit()
             
     history_msgs = db.query(Message).filter(Message.session_id == session_id).order_by(Message.id).all()
     history = [{"role": ("user" if m.sender == "user" else "assistant"), "content": m.content} for m in history_msgs]
@@ -233,6 +255,3 @@ def get_analytics(db: Session = Depends(get_db)):
         "average_duration_minutes": avg_duration,
         "users": user_data
     }
-
-from datetime import datetime
-# Trigger reload

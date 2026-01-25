@@ -53,7 +53,7 @@ def generate_dynamic_prompt(conf):
     
     INTERACTION GUIDELINES:
     1. Be polite, professional, and helpful.
-    2. Collect User Information (Name, Email, Mobile) early in the conversation naturally.
+    2. The user's name and email have already been collected at the start. You can use them in your responses.
     3. If the user asks for something not in our list, say: "I apologize, but we currently do not offer that service/destination." You may then suggest a close alternative from our list if applicable.
     4. If the user is interested in a listed item, you can provide details.
     5. **Brochures/Flyers**: If the user asks for a brochure/flyer for a LISTED item, use `generate_flyer_pdf`. If the item is NOT listed, refuse to generate the flyer.
